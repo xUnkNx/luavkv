@@ -1,17 +1,17 @@
-local istable = istable
---[[ luavmt is simple lib over luavkv for parsing textures from vmt files and testing luavkv parser]]
-module("luavmt", package.seeall)
+--[[ luavmt is simple lib over luavkv for parsing textures from vmt files and testing luavkv parser for Garry's mod ]]
 
-texturekeys = {}
-for k, v in ipairs({
+local luavmt = {}
+--- @type table<string, true>
+local texturekeys = {}
+for _, v in ipairs({
 	"ambientoccltexture",
 	"basetexture",
 	"basetexture2",
 	"blendmodulatetexture",
-	"blurtexture", -- shader
+	"blurtexture",   -- shader
 	"crackmaterial",
 	"fallbackmaterial", -- dxlevel
-	"fbtexture", -- shader
+	"fbtexture",     -- shader
 	"bumpmap",
 	"bumpmap2",
 	"corneatexture",
@@ -52,17 +52,22 @@ for k, v in ipairs({
 	]]
 }) do texturekeys[v] = true end
 
+--- @param textures table<integer, string>
+--- @param vals iKV
 local function storeTexture(textures, vals)
 	for k, v in pairs(vals) do
 		if type(v) == "string" then
-			k = k:lower()
+			--- @cast v string
+			k = tostring(k):lower()
+			--- @cast k string
 
 			if (k[1] == "$" or k[1] == "%") then
 				k = k:sub(2)
 			end
 
 			if texturekeys[k] then
-				textures[#textures + 1] = v:gsub("\\\\?", "/"):lower() -- textures are not case sensitive, better to lowercase it, also we should replace windows path to linux like
+				-- textures are not case sensitive, better to lowercase it, also we should replace windows path to linux like
+				textures[#textures + 1] = v:gsub("\\\\?", "/"):lower()
 			end
 		elseif type(v) == "table" then
 			storeTexture(textures, v)
@@ -70,14 +75,17 @@ local function storeTexture(textures, vals)
 	end
 end
 
-function isRelativePath(path)
+--- @param path string Filepath
+function luavmt.isRelativePath(path)
 	if path:sub(1, 11) == "materials/" then return true end
 	local ext = path:sub(-3)
 	if ext == "vmt" or ext == "vtf" then return true end
 end
 
-function getTextures(vmt, gpath)
-	local tab = luavkv.fileToTable(vmt, {gpath = gpath})
+--- @param vmtFilePath string Filepath
+--- @param gpath string
+function luavmt.getTextures(vmtFilePath, gpath)
+	local tab = luavkv.fileToTable(vmtFilePath, { gpath = gpath })
 	local textures = {}
 
 	for shadername, vals in pairs(tab) do
@@ -85,7 +93,7 @@ function getTextures(vmt, gpath)
 		local ok, err = pcall(storeTexture, textures, vals)
 
 		if not ok then
-			print(vmt, gpath)
+			print(vmtFilePath, gpath)
 			print(err .. "\n")
 			if istable(vals) then
 				if util and util.TableToJSON then
@@ -101,25 +109,27 @@ function getTextures(vmt, gpath)
 end
 
 -- garry's mod required to test VMT read state
-if file.Find then
-	function ParseTest(path, gpath)
-		--print(path)
+if file and file.Find then
+	--- @param path string Filepath
+	--- @param gpath string Gmod location
+	function luavmt.parseTest(path, gpath)
+		--- @type string[], string[]
 		local files, fold = file.Find(path .. "*", gpath)
 
-		for k, v in pairs(fold) do
+		for _, v in pairs(fold) do
 			if v ~= "debug" then
-				VMTParseTest(path .. v .. "/", gpath)
+				luavmt.parseTest(path .. v .. "/", gpath)
 			end
 		end
 
-		for i, j in pairs(files) do
+		for _, j in pairs(files) do
 			if string.GetExtensionFromFilename(j) == "vmt" then
 				--print(path .. j)
-				local mounttext = getVMTTextures(path .. j .. ".vmt", gpath)
+				local mounttext = luavmt.getTextures(path .. j, gpath)
 
 				if #mounttext == 0 then
-					print(toJSON(path .. j .. ".vmt", gpath))
-					print("File " .. path .. j .. ".vmt doesn't contain textures, possible bug or texture should be like it.")
+					print(luavkv.fileToJSON(path .. j, { gpath = gpath }))
+					print("File " .. path .. j .. " doesn't contain textures, possible bug or texture should be like it.")
 				end
 
 				--[[for i, j in pairs(mounttext) do
@@ -162,3 +172,5 @@ if file.Find then
 		end
 	end
 end
+
+_G.luavmt = luavmt
