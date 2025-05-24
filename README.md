@@ -1,10 +1,12 @@
-# luavmt
-Lua Valve key value structure standalone parser for Garry's mod
+# luavkv
+Lua Valve key value structure standalone parser
 
 Parser is based on info provided at https://developer.valvesoftware.com/wiki/Category:List_of_Shader_Parameters
+Designed for garry's mod & lua 5.1.
+
 WARNING! Garry's mod already contains special function util.KeyValuesToTable, but its not always parse everything (also doesn't return 0-level keys which in VMT is shadernames).
 IMaterial:GetKeyValues returns only correct textures that support game engine.
-This can be used to parse valve key value structure.
+This can be used to parse valve key value structure with collisions to merge them and etc.
 
 Valve Key Value Structure (EBNF) as i understand (that used to VMT and etc.):
 ```
